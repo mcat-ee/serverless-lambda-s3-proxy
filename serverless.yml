@@ -1,0 +1,50 @@
+service: the-s3-link    # USER: you _MUST_ change this before deploying!!! TODO
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+
+#  stage: dev
+  region: ap-southeast-2
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:PutObjectAcl
+        - s3:GetObject
+      Resource: "arn:aws:s3:::${self:custom.bucketName}/*"
+
+custom:
+  bucketName: big-ol-test-bucket    # USER: you _MUST_ change this before deploying!!! TODO
+  apigwBinary:
+    types:           #list of mime-types
+      - 'image/jpeg'
+      - 'text/html'
+# you can define service wide environment variables here
+environment:
+  bucketName: "${self:custom.bucketName}"
+
+exclude:
+  - assets/**
+
+functions:
+  serve_file_from_s3:
+    handler: handler.serve_file_from_s3
+    events:
+      - http:
+          path: /{path}
+          method: any
+      - http:
+          path: /
+          method: any
+resources:
+  Resources:
+    S3BucketOutputs:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName}
+
+plugins:
+  - serverless-offline
+  - serverless-apigw-binary
